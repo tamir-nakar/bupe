@@ -22,5 +22,6 @@
   },
   "include": [
     "src"
-, "public/background.js"  ]
+, "public/background.js"  ],
+    "exclude": ["src/chromeUtils.ts"]
 }
