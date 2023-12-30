@@ -14,12 +14,17 @@ import {
 } from "../Table/Table";
 import { getActiveTabUrl } from "../../chromeUtils";
 
+export type Order = 'asc' | 'desc';
+
 export default function Accordion() {
   const [expanded, setExpanded] = React.useState<string | false>("params");
   const [urlInfoDataRows, setUrlInfoDataRows] = React.useState<
     UrlInfoDataRow[]
   >([]);
   const [queryDataRows, setQueryDataRows] = React.useState<QueryDataRow[]>([]);
+  const [order, setOrder] = React.useState<Order>();
+  const [orderBy, setOrderBy] = React.useState<keyof QueryDataRow>(); // order by property or value
+
 
   const queryTableColumns: QueryColumn[] = [
     { id: "property", label: "property", minWidth: 200 },
@@ -30,6 +35,16 @@ export default function Accordion() {
     { id: "element", label: "element", minWidth: 200 },
     { id: "details", label: "details", minWidth: 200 },
   ];
+
+  const handleSort = (
+    event: React.MouseEvent<unknown>,
+    property: keyof QueryDataRow,
+  ) => {
+    const isAsc = !order || order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+    console.log('in handle request sort')
+  };
 
   useEffect(() => {
     const prepareInfo = async () => {
@@ -93,7 +108,7 @@ export default function Accordion() {
         </AccordionSummary>
         <AccordionDetails>
           <Typography>
-            <QueryTable columns={queryTableColumns} rows={queryDataRows} />
+            <QueryTable columns={queryTableColumns} rows={queryDataRows} orderBy={orderBy} order={order} handleSort={handleSort} />
           </Typography>
         </AccordionDetails>
       </MuiAccordion>
