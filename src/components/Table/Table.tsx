@@ -9,9 +9,14 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import { Order } from "../Accordion/Accordion";
 import { visuallyHidden } from "@mui/utils";
 import Box from "@mui/material/Box";
-
+import {
+  BasicTextField,
+  WarningTextField,
+  ErrorTextField,
+} from "../TextField/TextField";
+import BasicButtonGroup from "../ButtonGroups/PairButtonGroup";
 export interface QueryColumn {
-  id: "property" | "value";
+  id: "property" | "value" | "toolbox";
   label: string;
   minWidth?: number;
   align?: "right";
@@ -21,6 +26,7 @@ export interface QueryColumn {
 export interface QueryDataRow {
   property: string;
   value: string;
+  toolbox: any;
 }
 
 export interface UrlInfoColumn {
@@ -63,48 +69,68 @@ export function QueryTable({
           <TableHead>
             <TableRow>
               {columns.map((column) => {
-                  return (
-                    <TableCell
-                      key={column.id}
-                      align={column.align}
-                      style={{ minWidth: column.minWidth }}
+                return (
+                  <TableCell
+                    key={column.id}
+                    align="center"
+                    style={{ minWidth: column.minWidth }}
+                  >
+                    {column.label}
+                    <TableSortLabel
+                      active={orderBy === column.id}
+                      direction={orderBy === column.id ? order : "asc"}
+                      onClick={(e) => {
+                        console.log(column.id);
+                        return handleSort(e, column.id);
+                      }}
                     >
-                      {column.label}
-                      <TableSortLabel
-                        active={orderBy === column.id}
-                        direction={orderBy === column.id ? order : "asc"}
-                        onClick={(e) => {console.log(column.id); return handleSort(e, column.id)}}
-                      >
-                        {orderBy === column.id ? (
-                          <Box component="span" sx={visuallyHidden}>
-                            {order === "desc"
-                              ? "sorted descending"
-                              : "sorted ascending"}
-                          </Box>
-                        ) : null}
-                      </TableSortLabel>
-                    </TableCell>
-                  );
+                      {orderBy === column.id ? (
+                        <Box component="span" sx={visuallyHidden}>
+                          {order === "desc"
+                            ? "sorted descending"
+                            : "sorted ascending"}
+                        </Box>
+                      ) : null}
+                    </TableSortLabel>
+                  </TableCell>
+                );
               })}
             </TableRow>
           </TableHead>
           <TableBody>
             {rows.map((row) => (
-              <TableRow
-                hover
-                role="checkbox"
-                tabIndex={-1}
-                key={row.property + row.value}
-              >
+              <TableRow hover tabIndex={-1} key={row.property + row.value}>
                 {columns.map((column) => {
                   const value = row[column.id];
-                  return (
-                    <TableCell key={column.id} align={column.align}>
-                      {column.format && typeof value === "number"
-                        ? column.format(value)
-                        : value}
-                    </TableCell>
-                  );
+                  if (column.id !== "toolbox") {
+                    return (
+                      <TableCell
+                        key={column.id}
+                        align={column.align}
+                        sx={{ padding: 0, paddingRight:'22px' }}
+                      >
+                        <BasicTextField value={value} />
+
+                        {/* {column.format && typeof value === "number"
+                          ? column.format(value)
+                          : value} */}
+                      </TableCell>
+                    );
+                  } else {
+                    return (
+                      <TableCell
+                        key={column.id}
+                        align={column.align}
+                        sx={{ padding: 0 }}
+                      >
+                        <BasicButtonGroup />
+
+                        {/* {column.format && typeof value === "number"
+                      ? column.format(value)
+                      : value} */}
+                      </TableCell>
+                    );
+                  }
                 })}
               </TableRow>
             ))}

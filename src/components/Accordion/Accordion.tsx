@@ -14,8 +14,29 @@ import {
 } from "../Table/Table";
 import { getActiveTabUrl } from "../../chromeUtils";
 
-export type Order = 'asc' | 'desc';
+export type Order = "asc" | "desc";
 
+function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
+  if (b[orderBy] < a[orderBy]) {
+    return -1;
+  }
+  if (b[orderBy] > a[orderBy]) {
+    return 1;
+  }
+  return 0;
+}
+
+function getComparator<Key extends keyof any>(
+  order: Order,
+  orderBy: Key
+): (
+  a: { [key in Key]: number | string },
+  b: { [key in Key]: number | string }
+) => number {
+  return order === "desc"
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+}
 export default function Accordion() {
   const [expanded, setExpanded] = React.useState<string | false>("params");
   const [urlInfoDataRows, setUrlInfoDataRows] = React.useState<
@@ -25,10 +46,10 @@ export default function Accordion() {
   const [order, setOrder] = React.useState<Order>();
   const [orderBy, setOrderBy] = React.useState<keyof QueryDataRow>(); // order by property or value
 
-
   const queryTableColumns: QueryColumn[] = [
-    { id: "property", label: "property", minWidth: 200 },
+    { id: "property", label: "property", minWidth: 120 },
     { id: "value", label: "value", minWidth: 200 },
+    { id: "toolbox", label: "toolbox", minWidth: 100 },
   ];
 
   const urlInfoTableColumns: UrlInfoColumn[] = [
@@ -38,12 +59,12 @@ export default function Accordion() {
 
   const handleSort = (
     event: React.MouseEvent<unknown>,
-    property: keyof QueryDataRow,
+    property: keyof QueryDataRow
   ) => {
-    const isAsc = !order || order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
+    const isAsc = !order || order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
-    console.log('in handle request sort')
+    console.log("in handle request sort");
   };
 
   useEffect(() => {
@@ -72,6 +93,7 @@ export default function Accordion() {
         ).map(([key, value]) => ({
           property: key,
           value: value,
+          toolbox: "dd",
         }));
 
         // Update the state with the new array
@@ -108,7 +130,19 @@ export default function Accordion() {
         </AccordionSummary>
         <AccordionDetails>
           <Typography>
-            <QueryTable columns={queryTableColumns} rows={queryDataRows} orderBy={orderBy} order={order} handleSort={handleSort} />
+            <QueryTable
+              columns={queryTableColumns}
+              rows={
+                order && orderBy
+                  ? queryDataRows.sort(
+                      getComparator<keyof QueryDataRow>(order, orderBy)
+                    )
+                  : queryDataRows
+              }
+              orderBy={orderBy}
+              order={order}
+              handleSort={handleSort}
+            />
           </Typography>
         </AccordionDetails>
       </MuiAccordion>
