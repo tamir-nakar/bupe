@@ -13,7 +13,7 @@ import {
   UrlInfoTable,
 } from "../Table/Table";
 import { getActiveTabUrl } from "../../chromeUtils";
-
+import { Pair } from "../../models/models";
 export type Order = "asc" | "desc";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
@@ -30,13 +30,25 @@ function getComparator<Key extends keyof any>(
   order: Order,
   orderBy: Key
 ): (
-  a: { [key in Key]: number | string },
-  b: { [key in Key]: number | string }
+  a: { [key in Key]: number | string | boolean },
+  b: { [key in Key]: number | string | boolean }
 ) => number {
   return order === "desc"
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
+
+const queryTableColumns: QueryColumn[] = [
+  { id: "property", label: "property", minWidth: 120 },
+  { id: "value", label: "value", minWidth: 200 },
+  { id: "toolbox", label: "toolbox", minWidth: 100 },
+];
+
+const urlInfoTableColumns: UrlInfoColumn[] = [
+  { id: "element", label: "element", minWidth: 200 },
+  { id: "details", label: "details", minWidth: 200 },
+];
+
 export default function Accordion() {
   const [expanded, setExpanded] = React.useState<string | false>("params");
   const [urlInfoDataRows, setUrlInfoDataRows] = React.useState<
@@ -45,17 +57,7 @@ export default function Accordion() {
   const [queryDataRows, setQueryDataRows] = React.useState<QueryDataRow[]>([]);
   const [order, setOrder] = React.useState<Order>();
   const [orderBy, setOrderBy] = React.useState<keyof QueryDataRow>(); // order by property or value
-
-  const queryTableColumns: QueryColumn[] = [
-    { id: "property", label: "property", minWidth: 120 },
-    { id: "value", label: "value", minWidth: 200 },
-    { id: "toolbox", label: "toolbox", minWidth: 100 },
-  ];
-
-  const urlInfoTableColumns: UrlInfoColumn[] = [
-    { id: "element", label: "element", minWidth: 200 },
-    { id: "details", label: "details", minWidth: 200 },
-  ];
+  const [currentUrl, setCurrentUrl] = React.useState<string>();
 
   const handleSort = (
     event: React.MouseEvent<unknown>,
@@ -64,7 +66,6 @@ export default function Accordion() {
     const isAsc = !order || order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
-    console.log("in handle request sort");
   };
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export default function Accordion() {
       const url = await getActiveTabUrl();
       if (url) {
         const urlParsed = new URL(url);
+        setCurrentUrl(url);
         setUrlInfoDataRows((prevRows) => [
           ...prevRows,
           {
@@ -93,7 +95,8 @@ export default function Accordion() {
         ).map(([key, value]) => ({
           property: key,
           value: value,
-          toolbox: "dd",
+          toolbox: "",
+          isActive: true
         }));
 
         // Update the state with the new array
@@ -108,10 +111,52 @@ export default function Accordion() {
     };
   }, []);
 
+  function removeElementByIndex<T>(array: T[], index: number): T[] {
+    if (index < 0 || index >= array.length) {
+      // Index out of bounds
+      return array;
+    }
+
+    // Using array.slice to create a new array without modifying the original
+    return [...array.slice(0, index), ...array.slice(index + 1)];
+  }
+
+  // const deleteParamFromUrl = (key: string) => {
+  //   const updatedUrl = new URL(currentUrl!);
+
+  //   updatedUrl.searchParams.delete(key);
+
+  //   setCurrentUrl(updatedUrl.toString());
+  // };
+
   const handleChange =
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
       setExpanded(isExpanded ? panel : false);
     };
+
+  const handlePairToggle = (pair: Pair) => {
+
+
+    let prevIsActive;
+    setQueryDataRows((prevRows) => {
+      
+      const updatedRows = [...prevRows];
+      prevIsActive = prevRows[pair.id].isActive
+      updatedRows[pair.id] = { ...updatedRows[pair.id], isActive: !prevIsActive };
+
+      return updatedRows});
+
+      let url = new URL(currentUrl!)
+      if(!prevIsActive){
+        url.searchParams.set(pair.key, pair.value);
+      }else{
+      
+        url.searchParams.delete(pair.key);
+      }
+      
+      chrome.runtime.sendMessage({ type: "updateUrl", value: url.toString() });
+      setCurrentUrl(url.toString())
+  };
 
   return (
     <div>
@@ -142,6 +187,7 @@ export default function Accordion() {
               orderBy={orderBy}
               order={order}
               handleSort={handleSort}
+              handlePairToggle={handlePairToggle}
             />
           </Typography>
         </AccordionDetails>

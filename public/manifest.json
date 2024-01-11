@@ -3,7 +3,7 @@
   "short_name": "Bupe",
   "description": "Best Url Parser Ever",
   "version": "1.0.0",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "scripting"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -20,6 +20,13 @@
     "64": "64x64.png",
     "128": "128x128.png"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["background.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "manifest_version": 3,
   "content_security_policy":{
 

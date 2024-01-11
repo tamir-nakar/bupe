@@ -9,12 +9,13 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import { Order } from "../Accordion/Accordion";
 import { visuallyHidden } from "@mui/utils";
 import Box from "@mui/material/Box";
+import {Pair} from "../../models/models"
 import {
   BasicTextField,
   WarningTextField,
   ErrorTextField,
 } from "../TextField/TextField";
-import BasicButtonGroup from "../ButtonGroups/PairButtonGroup";
+import PairButtonGroup from "../ButtonGroups/PairButtonGroup";
 export interface QueryColumn {
   id: "property" | "value" | "toolbox";
   label: string;
@@ -27,6 +28,7 @@ export interface QueryDataRow {
   property: string;
   value: string;
   toolbox: any;
+  isActive: boolean
 }
 
 export interface UrlInfoColumn {
@@ -48,6 +50,7 @@ interface QueryTableProps {
   handleSort: any;
   orderBy?: keyof QueryDataRow;
   order?: Order;
+  handlePairToggle: any;
 }
 
 interface UrlInfoTableProps {
@@ -61,6 +64,7 @@ export function QueryTable({
   orderBy,
   order,
   handleSort,
+  handlePairToggle
 }: QueryTableProps) {
   return (
     <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -80,7 +84,6 @@ export function QueryTable({
                       active={orderBy === column.id}
                       direction={orderBy === column.id ? order : "asc"}
                       onClick={(e) => {
-                        console.log(column.id);
                         return handleSort(e, column.id);
                       }}
                     >
@@ -98,22 +101,20 @@ export function QueryTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row) => (
+            {rows.map((row,idx) => (
               <TableRow hover tabIndex={-1} key={row.property + row.value}>
                 {columns.map((column) => {
                   const value = row[column.id];
+                  const additionalSx = row.isActive? {} : {backgroundColor: '#bdbdbd'}
                   if (column.id !== "toolbox") {
                     return (
                       <TableCell
                         key={column.id}
                         align={column.align}
-                        sx={{ padding: 0, paddingRight:'22px' }}
+                        sx={{ padding: 0, paddingRight:'22px', ...additionalSx }}
                       >
                         <BasicTextField value={value} />
-
-                        {/* {column.format && typeof value === "number"
-                          ? column.format(value)
-                          : value} */}
+       
                       </TableCell>
                     );
                   } else {
@@ -121,9 +122,9 @@ export function QueryTable({
                       <TableCell
                         key={column.id}
                         align={column.align}
-                        sx={{ padding: 0 }}
+                        sx={{ padding: 0,...additionalSx }}
                       >
-                        <BasicButtonGroup />
+                        <PairButtonGroup pair={{key: row.property, value: row.value, id: idx }} handlePairToggle={handlePairToggle} />
 
                         {/* {column.format && typeof value === "number"
                       ? column.format(value)

@@ -29,7 +29,6 @@ interface BasicTextFieldProps {
 export const BasicTextField: React.FC<BasicTextFieldProps> = ({ value }) => {
   return (
     <NoBackgroundTextField
-      id="filled-basic"
       variant="standard"
       fullWidth
       multiline
