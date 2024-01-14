@@ -11,9 +11,10 @@ import {
   QueryColumn,
   QueryTable,
   UrlInfoTable,
+  Pair,
 } from "../Table/Table";
-import { getActiveTabUrl } from "../../chromeUtils";
-import { Pair } from "../../models/models";
+import { getActiveTabUrl, getLocalData, setLocalData } from "../../chromeUtils";
+
 export type Order = "asc" | "desc";
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
@@ -26,13 +27,22 @@ function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   return 0;
 }
 
-function getComparator<Key extends keyof any>(
+// function getComparator<Key extends keyof any>(
+//   order: Order,
+//   orderBy: Key
+// ): (
+//   a: { [key in Key]: number | string | boolean },
+//   b: { [key in Key]: number | string | boolean }
+// ) => number {
+//   return order === "desc"
+//     ? (a, b) => descendingComparator(a, b, orderBy)
+//     : (a, b) => -descendingComparator(a, b, orderBy);
+// }
+
+function getComparator<Key extends keyof QueryDataRow>(
   order: Order,
   orderBy: Key
-): (
-  a: { [key in Key]: number | string | boolean },
-  b: { [key in Key]: number | string | boolean }
-) => number {
+): (a: QueryDataRow, b: QueryDataRow) => number {
   return order === "desc"
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
@@ -49,15 +59,22 @@ const urlInfoTableColumns: UrlInfoColumn[] = [
   { id: "details", label: "details", minWidth: 200 },
 ];
 
+
 export default function Accordion() {
   const [expanded, setExpanded] = React.useState<string | false>("params");
   const [urlInfoDataRows, setUrlInfoDataRows] = React.useState<
     UrlInfoDataRow[]
   >([]);
-  const [queryDataRows, setQueryDataRows] = React.useState<QueryDataRow[]>([]);
+  const [queryDataRowsMap, setQueryDataRowsMap] = React.useState<{
+    [key: string]: QueryDataRow;
+  }>({});
+  const [toggledOffDataRows, setToggledOffDataRows] = React.useState<string[]>(
+    []
+  );
   const [order, setOrder] = React.useState<Order>();
   const [orderBy, setOrderBy] = React.useState<keyof QueryDataRow>(); // order by property or value
   const [currentUrl, setCurrentUrl] = React.useState<string>();
+  const [originalUrl, setOriginalUrl] = React.useState<string>(); // original url on session start
 
   const handleSort = (
     event: React.MouseEvent<unknown>,
@@ -68,6 +85,27 @@ export default function Accordion() {
     setOrderBy(property);
   };
 
+  function getQueryDataRows() {
+    console.log('drawing:')
+    console.log(queryDataRowsMap)
+    return Object.values(queryDataRowsMap);
+  }
+
+  const updateQueryDataRow = (updates: [string, any][]) => {
+    setQueryDataRowsMap((prevMap) => {
+      const updatedMap = { ...prevMap };
+
+      updates.forEach(([key, value]) => {
+        if (updatedMap[key]) {
+          // Update the specified property with the new value
+          
+          updatedMap[key] = { ...updatedMap[key], ...value };
+        }
+      });
+
+      return updatedMap;
+    });
+  };
   useEffect(() => {
     const prepareInfo = async () => {
       const url = await getActiveTabUrl();
@@ -90,18 +128,35 @@ export default function Accordion() {
           },
         ]);
 
-        const searchParamsArray = Array.from(
-          urlParsed.searchParams.entries()
-        ).map(([key, value]) => ({
-          property: key,
-          value: value,
-          toolbox: "",
-          isActive: true
-        }));
+        const newQueryDataRowsMap: { [key: string]: QueryDataRow } = {};
+        urlParsed.searchParams.forEach((value, key) => {
+          newQueryDataRowsMap[key] = {
+            property: key,
+            value,
+            toolbox: "",
+            isActive: true,
+          };
+        });
+
+        console.log('queryDataRowsMap 🗺')
+        console.log(newQueryDataRowsMap)
+
+        const toggledOffDataRows =
+          (await getLocalData("toggled_off_data_rows")) || {};
+
+          for (let key in toggledOffDataRows){
+            newQueryDataRowsMap[key] = {
+              property: key,
+              value: toggledOffDataRows[key],
+              toolbox: "",
+              isActive: false,
+            }
+          }
 
         // Update the state with the new array
-        setQueryDataRows((prevRows) => [...prevRows, ...searchParamsArray]);
+        setQueryDataRowsMap(newQueryDataRowsMap);
       }
+      // TODO: if not url - present a nice message of OOPS...
     };
 
     prepareInfo();
@@ -111,51 +166,36 @@ export default function Accordion() {
     };
   }, []);
 
-  function removeElementByIndex<T>(array: T[], index: number): T[] {
-    if (index < 0 || index >= array.length) {
-      // Index out of bounds
-      return array;
-    }
-
-    // Using array.slice to create a new array without modifying the original
-    return [...array.slice(0, index), ...array.slice(index + 1)];
-  }
-
-  // const deleteParamFromUrl = (key: string) => {
-  //   const updatedUrl = new URL(currentUrl!);
-
-  //   updatedUrl.searchParams.delete(key);
-
-  //   setCurrentUrl(updatedUrl.toString());
-  // };
-
   const handleChange =
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
       setExpanded(isExpanded ? panel : false);
     };
 
-  const handlePairToggle = (pair: Pair) => {
+  const handlePairToggle = async (row: QueryDataRow) => {
+    const oldActiveState = row.isActive;
+    updateQueryDataRow([[row.property, { isActive: !oldActiveState }]]);
 
-
-    let prevIsActive;
-    setQueryDataRows((prevRows) => {
+    let url = new URL(currentUrl!);
+    const toggledOffDataRows: {[key: string]:Pair} =
+    (await getLocalData("toggled_off_data_rows")) || {};
+    if (!oldActiveState) {
+      // off -> on
+      url.searchParams.set(row.property, row.value);
+      delete toggledOffDataRows[row.property]
+      await setLocalData({
+        toggled_off_data_rows: toggledOffDataRows,
+      });
+    } else {
+      // on -> off
+      url.searchParams.delete(row.property);
+        await setLocalData({
+          toggled_off_data_rows: {...toggledOffDataRows, [row.property]: row.value},
+        });
       
-      const updatedRows = [...prevRows];
-      prevIsActive = prevRows[pair.id].isActive
-      updatedRows[pair.id] = { ...updatedRows[pair.id], isActive: !prevIsActive };
+    }
 
-      return updatedRows});
-
-      let url = new URL(currentUrl!)
-      if(!prevIsActive){
-        url.searchParams.set(pair.key, pair.value);
-      }else{
-      
-        url.searchParams.delete(pair.key);
-      }
-      
-      chrome.runtime.sendMessage({ type: "updateUrl", value: url.toString() });
-      setCurrentUrl(url.toString())
+    chrome.runtime.sendMessage({ type: "updateUrl", value: url.toString() });
+    setCurrentUrl(url.toString());
   };
 
   return (
@@ -179,10 +219,10 @@ export default function Accordion() {
               columns={queryTableColumns}
               rows={
                 order && orderBy
-                  ? queryDataRows.sort(
+                  ? getQueryDataRows().sort(
                       getComparator<keyof QueryDataRow>(order, orderBy)
                     )
-                  : queryDataRows
+                  : getQueryDataRows()
               }
               orderBy={orderBy}
               order={order}

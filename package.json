@@ -46,6 +46,7 @@
     ]
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.256"
+    "@types/chrome": "^0.0.256",
+    "@types/uuid": "^9.0.7"
   }
 }

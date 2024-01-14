@@ -1,18 +1,18 @@
 import React from "react";
 import Switch from "@mui/material/Switch";
-import { Pair } from "../../models/models";
+import { QueryDataRow } from "../Table/Table";
 
 interface PairSwitchProps {
-  pair: Pair;
+  row: QueryDataRow;
   handlePairToggle: any;
 }
 
-const PairSwitch: React.FC<PairSwitchProps> = ({ pair, handlePairToggle }) => {
+const PairSwitch: React.FC<PairSwitchProps> = ({ row, handlePairToggle }) => {
   return (
     <Switch
       defaultChecked
       size="small"
-      onChange={() => handlePairToggle(pair)}
+      onChange={() => handlePairToggle(row)}
     />
   );
 };

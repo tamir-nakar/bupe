@@ -9,14 +9,14 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CodeIcon from "@mui/icons-material/Code";
 import CodeOffIcon from "@mui/icons-material/CodeOff";
 import PairSwitch from "../Buttons/PairSwitch";
-import { Pair } from "../../models/models";
+import { QueryDataRow } from "../Table/Table";
 
 interface PairButtonGroupProps {
-  pair: Pair;
+  row: QueryDataRow;
   handlePairToggle: any
 }
 
-const PairButtonGroup: React.FC<PairButtonGroupProps> = ({pair, handlePairToggle}) => {
+const PairButtonGroup: React.FC<PairButtonGroupProps> = ({row, handlePairToggle}) => {
   const fontSize = "15px";
 
   const buttonData = [
@@ -36,7 +36,7 @@ const PairButtonGroup: React.FC<PairButtonGroupProps> = ({pair, handlePairToggle
         <Tooltip key={button.action} title={button.label} placement="top" arrow>
           <Button>
             {button.action === "Switch" ? (
-              <PairSwitch pair={pair} handlePairToggle={handlePairToggle}/>
+              <PairSwitch row={row} handlePairToggle={handlePairToggle}/>
             ) : (
               <IconButton
                 aria-label={button.action}

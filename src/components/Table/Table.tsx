@@ -9,7 +9,7 @@ import TableSortLabel from "@mui/material/TableSortLabel";
 import { Order } from "../Accordion/Accordion";
 import { visuallyHidden } from "@mui/utils";
 import Box from "@mui/material/Box";
-import {Pair} from "../../models/models"
+
 import {
   BasicTextField,
   WarningTextField,
@@ -24,12 +24,19 @@ export interface QueryColumn {
   format?: (value: number) => string;
 }
 
-export interface QueryDataRow {
-  property: string;
-  value: string;
-  toolbox: any;
-  isActive: boolean
+export interface QueryDataRow extends Pair{
+  isActive: boolean,
+  toolbox: string,
+  isError?: boolean,
+  isWarning?: boolean
 }
+
+export interface Pair {
+  property: string; // property should be unique
+  value: string; 
+}
+
+
 
 export interface UrlInfoColumn {
   id: "element" | "details";
@@ -124,7 +131,7 @@ export function QueryTable({
                         align={column.align}
                         sx={{ padding: 0,...additionalSx }}
                       >
-                        <PairButtonGroup pair={{key: row.property, value: row.value, id: idx }} handlePairToggle={handlePairToggle} />
+                        <PairButtonGroup row={row} handlePairToggle={handlePairToggle} />
 
                         {/* {column.format && typeof value === "number"
                       ? column.format(value)
