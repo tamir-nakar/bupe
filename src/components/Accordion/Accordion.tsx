@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import MuiAccordion from "@mui/material/Accordion"; // Aliasing Accordion as MuiAccordion
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -59,7 +59,6 @@ const urlInfoTableColumns: UrlInfoColumn[] = [
   { id: "details", label: "details", minWidth: 200 },
 ];
 
-
 export default function Accordion() {
   const [expanded, setExpanded] = React.useState<string | false>("params");
   const [urlInfoDataRows, setUrlInfoDataRows] = React.useState<
@@ -86,8 +85,8 @@ export default function Accordion() {
   };
 
   function getQueryDataRows() {
-    console.log('drawing:')
-    console.log(queryDataRowsMap)
+    console.log("drawing:");
+    console.log(queryDataRowsMap);
     return Object.values(queryDataRowsMap);
   }
 
@@ -98,10 +97,24 @@ export default function Accordion() {
       updates.forEach(([key, value]) => {
         if (updatedMap[key]) {
           // Update the specified property with the new value
-          
+
           updatedMap[key] = { ...updatedMap[key], ...value };
         }
       });
+
+      return updatedMap;
+    });
+  };
+
+  const deleteQueryDataRow = (keyToDel: string) => {
+    setQueryDataRowsMap((prevMap) => {
+      const updatedMap = { ...prevMap };
+
+      if (updatedMap[keyToDel]) {
+        // Update the specified property with the new value
+
+        delete updatedMap[keyToDel];
+      }
 
       return updatedMap;
     });
@@ -138,20 +151,20 @@ export default function Accordion() {
           };
         });
 
-        console.log('queryDataRowsMap 🗺')
-        console.log(newQueryDataRowsMap)
+        console.log("queryDataRowsMap 🗺");
+        console.log(newQueryDataRowsMap);
 
         const toggledOffDataRows =
           (await getLocalData("toggled_off_data_rows")) || {};
 
-          for (let key in toggledOffDataRows){
-            newQueryDataRowsMap[key] = {
-              property: key,
-              value: toggledOffDataRows[key],
-              toolbox: "",
-              isActive: false,
-            }
-          }
+        for (let key in toggledOffDataRows) {
+          newQueryDataRowsMap[key] = {
+            property: key,
+            value: toggledOffDataRows[key],
+            toolbox: "",
+            isActive: false,
+          };
+        }
 
         // Update the state with the new array
         setQueryDataRowsMap(newQueryDataRowsMap);
@@ -176,28 +189,82 @@ export default function Accordion() {
     updateQueryDataRow([[row.property, { isActive: !oldActiveState }]]);
 
     let url = new URL(currentUrl!);
-    const toggledOffDataRows: {[key: string]:Pair} =
-    (await getLocalData("toggled_off_data_rows")) || {};
+    const toggledOffDataRows: { [key: string]: Pair } =
+      (await getLocalData("toggled_off_data_rows")) || {};
     if (!oldActiveState) {
       // off -> on
       url.searchParams.set(row.property, row.value);
-      delete toggledOffDataRows[row.property]
+      delete toggledOffDataRows[row.property];
       await setLocalData({
         toggled_off_data_rows: toggledOffDataRows,
       });
     } else {
       // on -> off
       url.searchParams.delete(row.property);
-        await setLocalData({
-          toggled_off_data_rows: {...toggledOffDataRows, [row.property]: row.value},
-        });
-      
+      await setLocalData({
+        toggled_off_data_rows: {
+          ...toggledOffDataRows,
+          [row.property]: row.value,
+        },
+      });
     }
 
     chrome.runtime.sendMessage({ type: "updateUrl", value: url.toString() });
     setCurrentUrl(url.toString());
   };
 
+  const handleDelete = async (row: QueryDataRow) => {
+    let url = new URL(currentUrl!);
+    const toggledOffDataRows: { [key: string]: Pair } =
+      (await getLocalData("toggled_off_data_rows")) || {};
+    deleteQueryDataRow(row.property);
+    url.searchParams.delete(row.property);
+    delete toggledOffDataRows[row.property];
+    await setLocalData({
+      toggled_off_data_rows: toggledOffDataRows,
+    });
+
+    chrome.runtime.sendMessage({ type: "updateUrl", value: url.toString() });
+    setCurrentUrl(url.toString());
+  };
+
+  const handlePairChange = async (
+    row: QueryDataRow,
+    newValue: string,
+    changedElement: QueryColumn["id"]
+  ) => {
+    //clearFocus()
+    let url = new URL(currentUrl!);
+   // console.log('after clear focus')
+    //console.log(queryDataRowsMap)
+    if (changedElement === "property") {
+      setQueryDataRowsMap((prevMap) => {
+        const updatedMap = { ...prevMap };
+
+        delete updatedMap[row.property];
+        updatedMap[newValue] = { ...row, property: newValue};
+        return updatedMap;
+      });
+
+      url.searchParams.delete(row.property);
+      url.searchParams.set(newValue, row.value);
+    } else if (changedElement === "value") {
+      setQueryDataRowsMap((prevMap) => {
+        const updatedMap = { ...prevMap };
+
+        updatedMap[row.property] = {
+          ...updatedMap[row.property],
+          value: newValue,
+        };
+        return updatedMap;
+      });
+
+      url.searchParams.set(row.property, newValue);
+    }
+
+    chrome.runtime.sendMessage({ type: "updateUrl", value: url.toString() });
+    setCurrentUrl(url.toString());
+  };
   return (
     <div>
       {/* Accordion 1️⃣ ---------------------------------------------------------------- */}
@@ -228,6 +295,8 @@ export default function Accordion() {
               order={order}
               handleSort={handleSort}
               handlePairToggle={handlePairToggle}
+              handleDelete={handleDelete}
+              handlePairChange={handlePairChange}
             />
           </Typography>
         </AccordionDetails>

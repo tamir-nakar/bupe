@@ -24,19 +24,17 @@ export interface QueryColumn {
   format?: (value: number) => string;
 }
 
-export interface QueryDataRow extends Pair{
-  isActive: boolean,
-  toolbox: string,
-  isError?: boolean,
-  isWarning?: boolean
+export interface QueryDataRow extends Pair {
+  isActive: boolean;
+  toolbox: string;
+  isError?: boolean;
+  isWarning?: boolean;
 }
 
 export interface Pair {
   property: string; // property should be unique
-  value: string; 
+  value: string;
 }
-
-
 
 export interface UrlInfoColumn {
   id: "element" | "details";
@@ -58,6 +56,8 @@ interface QueryTableProps {
   orderBy?: keyof QueryDataRow;
   order?: Order;
   handlePairToggle: any;
+  handleDelete: any;
+  handlePairChange: any;
 }
 
 interface UrlInfoTableProps {
@@ -71,7 +71,9 @@ export function QueryTable({
   orderBy,
   order,
   handleSort,
-  handlePairToggle
+  handlePairToggle,
+  handleDelete,
+  handlePairChange,
 }: QueryTableProps) {
   return (
     <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -108,20 +110,31 @@ export function QueryTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row,idx) => (
-              <TableRow hover tabIndex={-1} key={row.property + row.value}>
-                {columns.map((column) => {
+            {rows.map((row, idx) => (
+              <TableRow hover tabIndex={-1} key={row.property+idx}>
+                {columns.map((column, idx) => {
                   const value = row[column.id];
-                  const additionalSx = row.isActive? {} : {backgroundColor: '#bdbdbd'}
+                  const additionalSx = row.isActive
+                    ? {}
+                    : { backgroundColor: "#bdbdbd" };
                   if (column.id !== "toolbox") {
                     return (
                       <TableCell
                         key={column.id}
                         align={column.align}
-                        sx={{ padding: 0, paddingRight:'22px', ...additionalSx }}
+                        sx={{
+                          padding: 0,
+                          paddingRight: "22px",
+                          ...additionalSx,
+                        }}
                       >
-                        <BasicTextField value={value} />
-       
+                        <BasicTextField
+                          key={idx+row.property}
+                          row={row}
+                          value={value}
+                          type={column.id}
+                          handlePairChange={handlePairChange}
+                        />
                       </TableCell>
                     );
                   } else {
@@ -129,9 +142,13 @@ export function QueryTable({
                       <TableCell
                         key={column.id}
                         align={column.align}
-                        sx={{ padding: 0,...additionalSx }}
+                        sx={{ padding: 0, ...additionalSx }}
                       >
-                        <PairButtonGroup row={row} handlePairToggle={handlePairToggle} />
+                        <PairButtonGroup
+                          row={row}
+                          handlePairToggle={handlePairToggle}
+                          handleDelete={handleDelete}
+                        />
 
                         {/* {column.format && typeof value === "number"
                       ? column.format(value)

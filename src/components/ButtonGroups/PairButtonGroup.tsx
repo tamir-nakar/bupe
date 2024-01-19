@@ -13,28 +13,29 @@ import { QueryDataRow } from "../Table/Table";
 
 interface PairButtonGroupProps {
   row: QueryDataRow;
-  handlePairToggle: any
+  handlePairToggle: any,
+  handleDelete: any
 }
 
-const PairButtonGroup: React.FC<PairButtonGroupProps> = ({row, handlePairToggle}) => {
+const PairButtonGroup: React.FC<PairButtonGroupProps> = ({row, handlePairToggle, handleDelete}) => {
   const fontSize = "15px";
 
   const buttonData = [
-    { label: "Delete", icon: <DeleteIcon />, action: "delete" },
-    { label: "Copy", icon: <ContentCopyIcon />, action: "copy" },
+    { label: "Delete", icon: <DeleteIcon />, action: "delete", actionFunction: handleDelete },
+    { label: "Copy", icon: <ContentCopyIcon />, action: "copy", actionFunction: ()=>{} },
     {
       label: "toggle prop",
       action: "Switch",
     },
-    { label: "Encode", icon: <CodeIcon />, action: "encode" },
-    { label: "Decode", icon: <CodeOffIcon />, action: "decode" },
+    { label: "Encode", icon: <CodeIcon />, action: "encode", actionFunction: ()=>{} },
+    { label: "Decode", icon: <CodeOffIcon />, action: "decode", actionFunction: ()=>{} },
   ];
 
   return (
     <ButtonGroup aria-label="small button group">
       {buttonData.map((button) => (
         <Tooltip key={button.action} title={button.label} placement="top" arrow>
-          <Button>
+          <Button onClick={()=>button.actionFunction(row)}>
             {button.action === "Switch" ? (
               <PairSwitch row={row} handlePairToggle={handlePairToggle}/>
             ) : (
