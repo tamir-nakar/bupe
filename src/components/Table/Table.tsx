@@ -90,7 +90,7 @@ export function QueryTable({
                   >
                     {column.label}
                     <TableSortLabel
-                      active={orderBy === column.id}
+                      active={orderBy === column.id && order !== undefined}
                       direction={orderBy === column.id ? order : "asc"}
                       onClick={(e) => {
                         return handleSort(e, column.id);
@@ -111,7 +111,7 @@ export function QueryTable({
           </TableHead>
           <TableBody>
             {rows.map((row, idx) => (
-              <TableRow hover tabIndex={-1} key={row.property+idx}>
+              <TableRow hover tabIndex={-1} >
                 {columns.map((column, idx) => {
                   const value = row[column.id];
                   const additionalSx = row.isActive
@@ -120,7 +120,7 @@ export function QueryTable({
                   if (column.id !== "toolbox") {
                     return (
                       <TableCell
-                        key={column.id}
+                        key={column.id+idx}
                         align={column.align}
                         sx={{
                           padding: 0,
@@ -129,7 +129,7 @@ export function QueryTable({
                         }}
                       >
                         <BasicTextField
-                          key={idx+row.property}
+                          key={idx}
                           row={row}
                           value={value}
                           type={column.id}

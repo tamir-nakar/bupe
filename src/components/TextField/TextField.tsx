@@ -50,7 +50,7 @@ export const BasicTextField: React.FC<BasicTextFieldProps> = ({
       value={value}
       InputProps={{ disableUnderline: true }}
       onChange={(e: ChangeEvent<HTMLInputElement>) =>
-        handlePairChange(row, e.target.value, type)
+        handlePairChange(row, e.target.value, type, e)
       }
     />
   );

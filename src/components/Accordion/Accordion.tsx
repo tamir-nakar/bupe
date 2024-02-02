@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, ChangeEvent } from "react";
 import MuiAccordion from "@mui/material/Accordion"; // Aliasing Accordion as MuiAccordion
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -26,18 +26,6 @@ function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
   }
   return 0;
 }
-
-// function getComparator<Key extends keyof any>(
-//   order: Order,
-//   orderBy: Key
-// ): (
-//   a: { [key in Key]: number | string | boolean },
-//   b: { [key in Key]: number | string | boolean }
-// ) => number {
-//   return order === "desc"
-//     ? (a, b) => descendingComparator(a, b, orderBy)
-//     : (a, b) => -descendingComparator(a, b, orderBy);
-// }
 
 function getComparator<Key extends keyof QueryDataRow>(
   order: Order,
@@ -119,6 +107,8 @@ export default function Accordion() {
       return updatedMap;
     });
   };
+
+  // on first load
   useEffect(() => {
     const prepareInfo = async () => {
       const url = await getActiveTabUrl();
@@ -184,6 +174,31 @@ export default function Accordion() {
       setExpanded(isExpanded ? panel : false);
     };
 
+  const updateProperty = (
+    url: URL,
+    keyToDelete: string,
+    keyToAdd: string,
+    valueToAdd: string
+  ) => {
+    // Get the query parameters as an array of key-value pairs
+    //@ts-ignore
+    const queryParamsArray = [...url.searchParams.entries()];
+
+    // Find the index of the parameter to delete
+    const indexToDelete = queryParamsArray.findIndex(
+      ([key]) => key === keyToDelete
+    );
+
+    if (indexToDelete !== -1) {
+      // Replace the parameter at the same index with the new key-value pair
+      queryParamsArray.splice(indexToDelete, 1, [keyToAdd, valueToAdd]);
+
+      // Reconstruct the URL with the updated parameters
+      url.search = new URLSearchParams(queryParamsArray).toString();
+    }
+
+    return url;
+  };
   const handlePairToggle = async (row: QueryDataRow) => {
     const oldActiveState = row.isActive;
     updateQueryDataRow([[row.property, { isActive: !oldActiveState }]]);
@@ -231,11 +246,12 @@ export default function Accordion() {
   const handlePairChange = async (
     row: QueryDataRow,
     newValue: string,
-    changedElement: QueryColumn["id"]
+    changedElement: QueryColumn["id"],
+    event: ChangeEvent<HTMLInputElement>
   ) => {
     //clearFocus()
     let url = new URL(currentUrl!);
-   // console.log('after clear focus')
+    // console.log('after clear focus')
     //console.log(queryDataRowsMap)
     if (changedElement === "property") {
       setQueryDataRowsMap((prevMap) => {
@@ -246,8 +262,10 @@ export default function Accordion() {
         return updatedMap;
       });
 
-      url.searchParams.delete(row.property);
-      url.searchParams.set(newValue, row.value);
+      url = updateProperty(url, row.property, newValue, row.value);
+      console.log(url);
+      // url.searchParams.delete(row.property);
+      // url.searchParams.set(newValue, row.value);
     } else if (changedElement === "value") {
       setQueryDataRowsMap((prevMap) => {
         const updatedMap = { ...prevMap };
@@ -262,6 +280,7 @@ export default function Accordion() {
       url.searchParams.set(row.property, newValue);
     }
 
+    setOrder(undefined); // we must disable the sort. otherwise, value may move to another textInput, but focus will remain at the same one
     chrome.runtime.sendMessage({ type: "updateUrl", value: url.toString() });
     setCurrentUrl(url.toString());
   };
